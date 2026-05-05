@@ -425,8 +425,6 @@ const CheckoutPage: React.FC = () => {
               </button>
             </div>
 
-            <h1 className="font-bold text-gray-900 mb-6" style={{ fontSize: '24px' }}>Payment Method</h1>
-
             <PaymentMethodSelector
               method={method}
               onSelect={setMethod}
