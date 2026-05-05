@@ -15,7 +15,10 @@ const CardEditorPage: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState('#111111');
   const [selectedLayout, setSelectedLayout] = useState('horizontal');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [imagePosition, setImagePosition] = useState<'left' | 'right' | 'background' | 'logo'>('logo');
+  const [imagePosition, setImagePosition] = useState<'left' | 'right' | 'background' | 'logo' | 'custom'>('logo');
+  const [logoSize, setLogoSize] = useState<number>(32); // Size in pixels (default 32px = w-8)
+  const [logoPosition, setLogoPosition] = useState({ x: 50, y: 50 }); // Position in percentage
+  const [isDragging, setIsDragging] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const readyFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -191,11 +194,50 @@ const CardEditorPage: React.FC = () => {
       text: cardText,
       uploadedImage: uploadedImage || null,
       imagePosition,
+      logoSize,
+      logoPosition,
       savedAt: new Date().toISOString(),
     };
     localStorage.setItem('businessCardDesign', JSON.stringify(designData));
     navigate('/business-card-checkout', { state: { cardDesign: designData } });
   };
+
+  // Handle logo drag on card
+  const handleLogoDragStart = (e: React.MouseEvent) => {
+    if (imagePosition !== 'custom') return;
+    setIsDragging(true);
+    e.preventDefault();
+  };
+
+  const handleLogoDrag = (e: React.MouseEvent) => {
+    if (!isDragging || !cardRef.current) return;
+    
+    const card = cardRef.current;
+    const rect = card.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    // Clamp values between 0 and 100
+    setLogoPosition({
+      x: Math.max(0, Math.min(100, x)),
+      y: Math.max(0, Math.min(100, y))
+    });
+  };
+
+  const handleLogoDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleLogoDrag as any);
+      window.addEventListener('mouseup', handleLogoDragEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleLogoDrag as any);
+        window.removeEventListener('mouseup', handleLogoDragEnd);
+      };
+    }
+  }, [isDragging]); // eslint-disable-line
 
   // Handle ready-to-print file upload
   const handleReadyFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -329,7 +371,8 @@ const CardEditorPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-12 gap-6">
           {/* Left Sidebar - Tools */}
-          <div className="col-span-3 space-y-4">
+          <div className="col-span-3 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-2"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db #f3f4f6' }}>
             {/* Upload Image */}
             <div className="bg-white rounded-2xl p-5 border border-gray-200">
               <div className="flex items-center gap-2 mb-4">
@@ -366,8 +409,40 @@ const CardEditorPage: React.FC = () => {
                           {pos}
                         </button>
                       ))}
+                      <button
+                        onClick={() => setImagePosition('custom')}
+                        className="py-1.5 px-2 rounded-lg text-xs font-semibold capitalize transition col-span-2"
+                        style={{
+                          backgroundColor: imagePosition === 'custom' ? '#111111' : '#f3f4f6',
+                          color: imagePosition === 'custom' ? '#ffffff' : '#374151',
+                        }}
+                      >
+                        Custom (Drag on Card)
+                      </button>
                     </div>
                   </div>
+                  {/* Logo Size Adjuster - Only show when position is Logo, Left, Right, or Custom */}
+                  {(imagePosition === 'logo' || imagePosition === 'left' || imagePosition === 'right' || imagePosition === 'custom') && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-gray-600">Logo Size</p>
+                        <span className="text-xs font-bold text-gray-900">{logoSize}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="16"
+                        max="128"
+                        step="4"
+                        value={logoSize}
+                        onChange={(e) => setLogoSize(Number(e.target.value))}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900"
+                      />
+                      <div className="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>Small</span>
+                        <span>Large</span>
+                      </div>
+                    </div>
+                  )}
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full py-2 rounded-xl border border-dashed border-gray-300 text-xs font-semibold text-gray-500 hover:border-gray-400 hover:text-gray-700 transition"
@@ -549,10 +624,20 @@ const CardEditorPage: React.FC = () => {
                           <p className="text-lg opacity-80">{cardText.title}</p>
                         </div>
                         {uploadedImage && imagePosition === 'logo' && (
-                          <img src={uploadedImage} alt="Logo" className="w-14 h-14 object-contain rounded-lg flex-shrink-0" />
+                          <img 
+                            src={uploadedImage} 
+                            alt="Logo" 
+                            className="object-contain rounded flex-shrink-0" 
+                            style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
+                          />
                         )}
                         {uploadedImage && imagePosition === 'right' && (
-                          <img src={uploadedImage} alt="Card image" className="w-24 h-24 object-cover rounded-xl flex-shrink-0" />
+                          <img 
+                            src={uploadedImage} 
+                            alt="Card image" 
+                            className="object-cover rounded-lg flex-shrink-0" 
+                            style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
+                          />
                         )}
                       </div>
                       <div className="flex items-end justify-between">
@@ -562,7 +647,12 @@ const CardEditorPage: React.FC = () => {
                           <p>{cardText.website}</p>
                         </div>
                         {uploadedImage && imagePosition === 'left' && (
-                          <img src={uploadedImage} alt="Card image" className="w-20 h-20 object-cover rounded-xl flex-shrink-0" />
+                          <img 
+                            src={uploadedImage} 
+                            alt="Card image" 
+                            className="object-cover rounded-lg flex-shrink-0" 
+                            style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
+                          />
                         )}
                       </div>
                     </div>
@@ -572,7 +662,12 @@ const CardEditorPage: React.FC = () => {
                   {selectedLayout === 'vertical' && (
                     <div className="h-full flex flex-col items-center justify-center text-center relative z-10">
                       {uploadedImage && (imagePosition === 'logo' || imagePosition === 'left') && (
-                        <img src={uploadedImage} alt="Logo" className="w-16 h-16 object-contain rounded-xl mb-3" />
+                        <img 
+                          src={uploadedImage} 
+                          alt="Logo" 
+                          className="object-contain rounded-lg mb-3" 
+                          style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
+                        />
                       )}
                       <h2 className="font-bold text-3xl mb-2">{cardText.name}</h2>
                       <p className="text-lg opacity-80 mb-4">{cardText.title}</p>
@@ -589,7 +684,12 @@ const CardEditorPage: React.FC = () => {
                     <div className="h-full flex items-center justify-center relative z-10">
                       <div className="text-center">
                         {uploadedImage && imagePosition === 'logo' && (
-                          <img src={uploadedImage} alt="Logo" className="w-14 h-14 object-contain rounded-xl mx-auto mb-3" />
+                          <img 
+                            src={uploadedImage} 
+                            alt="Logo" 
+                            className="object-contain rounded-lg mx-auto mb-3" 
+                            style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
+                          />
                         )}
                         <h2 className="font-bold text-4xl mb-3">{cardText.name}</h2>
                         <p className="text-xl opacity-80 mb-6">{cardText.title}</p>
@@ -606,14 +706,24 @@ const CardEditorPage: React.FC = () => {
                     <div className="h-full grid grid-cols-2 gap-8 relative z-10">
                       <div className="flex flex-col justify-center">
                         {uploadedImage && imagePosition === 'logo' && (
-                          <img src={uploadedImage} alt="Logo" className="w-12 h-12 object-contain rounded-lg mb-3" />
+                          <img 
+                            src={uploadedImage} 
+                            alt="Logo" 
+                            className="object-contain rounded mb-3" 
+                            style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
+                          />
                         )}
                         <h2 className="font-bold text-2xl mb-2">{cardText.name}</h2>
                         <p className="text-base opacity-80">{cardText.title}</p>
                       </div>
                       <div className="flex flex-col justify-center">
                         {uploadedImage && (imagePosition === 'right' || imagePosition === 'left') ? (
-                          <img src={uploadedImage} alt="Card image" className="w-full h-28 object-cover rounded-xl mb-2" />
+                          <img 
+                            src={uploadedImage} 
+                            alt="Card image" 
+                            className="object-cover rounded-lg mb-2" 
+                            style={{ width: '100%', height: `${logoSize * 2}px` }}
+                          />
                         ) : (
                           <div className="space-y-1 text-sm opacity-90">
                             <p>{cardText.phone}</p>
@@ -631,6 +741,25 @@ const CardEditorPage: React.FC = () => {
                     className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full opacity-10 z-0"
                     style={{ backgroundColor: currentTemplate.textColor }}
                   />
+
+                  {/* Draggable Custom Logo */}
+                  {uploadedImage && imagePosition === 'custom' && (
+                    <img
+                      src={uploadedImage}
+                      alt="Draggable Logo"
+                      className="absolute object-contain rounded cursor-move z-20"
+                      style={{
+                        width: `${logoSize}px`,
+                        height: `${logoSize}px`,
+                        left: `${logoPosition.x}%`,
+                        top: `${logoPosition.y}%`,
+                        transform: 'translate(-50%, -50%)',
+                        userSelect: 'none',
+                      }}
+                      onMouseDown={handleLogoDragStart}
+                      draggable={false}
+                    />
+                  )}
                 </div>
               </div>
             </div>

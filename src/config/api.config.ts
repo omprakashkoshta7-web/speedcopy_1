@@ -1,6 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_GATEWAY_URL || 'https://gateway-yvakohiopa-de.a.run.app',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_GATEWAY_URL || 'https://gateway-202671058278.asia-east1.run.app',
   TIMEOUT: 30000,
   ENDPOINTS: {
     // Auth
@@ -106,16 +106,16 @@ export const API_CONFIG = {
     },
     // Tickets — Internal service path via gateway
     TICKETS: {
-      CREATE: '/api/tickets',
-      GET_ALL: '/api/tickets',
-      GET_SUMMARY: '/api/tickets/summary',
+      CREATE: '/api/notifications/tickets',
+      GET_ALL: '/api/notifications/tickets',
+      GET_SUMMARY: '/api/notifications/tickets/summary',
       GET_HELP_CENTER: '/api/help-center',
-      GET_BY_ID: (id: string) => `/api/tickets/${id}`,
-      REPLY: (id: string) => `/api/tickets/${id}/reply`,
-      ASSIGN: (id: string) => `/api/tickets/${id}/assign`,
-      UPDATE_STATUS: (id: string) => `/api/tickets/${id}/status`,
-      ESCALATE: (id: string) => `/api/tickets/${id}/escalate`,
-      UPLOADS: '/api/tickets/uploads',
+      GET_BY_ID: (id: string) => `/api/notifications/tickets/${id}`,
+      REPLY: (id: string) => `/api/notifications/tickets/${id}/reply`,
+      ASSIGN: (id: string) => `/api/notifications/tickets/${id}/assign`,
+      UPDATE_STATUS: (id: string) => `/api/notifications/tickets/${id}/status`,
+      ESCALATE: (id: string) => `/api/notifications/tickets/${id}/escalate`,
+      UPLOADS: '/api/notifications/tickets/uploads',
     },
     // Vendors
     VENDORS: {

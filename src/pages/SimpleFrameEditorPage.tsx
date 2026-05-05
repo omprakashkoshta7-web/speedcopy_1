@@ -377,20 +377,25 @@ const SimpleFrameEditorPage: React.FC = () => {
         img.src = dataUrl;
       });
 
-      // Default size: 40% of editor width
       const editorW = editorRef.current?.clientWidth || 600;
       const editorH = editorRef.current?.clientHeight || 500;
-      const maxW = editorW * 0.45;
-      const maxH = editorH * 0.45;
-      const scale = Math.min(maxW / dims.w, maxH / dims.h, 1);
+
+      // Get the current frame image and detect inner bounds
+      const frameImg = productImages[activeImageIndex] || '';
+      const inner = frameImg
+        ? await detectFrameInnerBounds(frameImg, editorW, editorH)
+        : { x: editorW * 0.18, y: editorH * 0.18, w: editorW * 0.64, h: editorH * 0.64 };
+
+      // Scale photo to cover the inner frame area
+      const scale = Math.max(inner.w / dims.w, inner.h / dims.h);
       const w = dims.w * scale;
       const h = dims.h * scale;
 
       const photo: UserPhoto = {
         id: `photo_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         dataUrl,
-        x: (editorW - w) / 2,
-        y: (editorH - h) / 2,
+        x: inner.x + (inner.w - w) / 2,
+        y: inner.y + (inner.h - h) / 2,
         width: dims.w,
         height: dims.h,
         scale,
@@ -755,16 +760,7 @@ const SimpleFrameEditorPage: React.FC = () => {
                     className="relative bg-white shadow-lg rounded-lg overflow-hidden"
                     style={{ width: '300px', height: '250px' }}
                   >
-                    {/* Product image */}
-                    {activeProductImage && (
-                      <img
-                        src={activeProductImage}
-                        alt="preview"
-                        className="absolute inset-0 w-full h-full object-contain"
-                        crossOrigin="anonymous"
-                      />
-                    )}
-                    {/* User photo overlay */}
+                    {/* User photo - BEHIND frame (z-index 1) */}
                     {userPhotos.map(photo => {
                       const w = photo.width * photo.scale;
                       const h = photo.height * photo.scale;
@@ -779,6 +775,7 @@ const SimpleFrameEditorPage: React.FC = () => {
                             height: (h / 500) * 250,
                             borderRadius: '4px',
                             overflow: 'hidden',
+                            zIndex: 1,
                           }}
                         >
                           <img
@@ -789,6 +786,16 @@ const SimpleFrameEditorPage: React.FC = () => {
                         </div>
                       );
                     })}
+                    {/* Product frame - ON TOP (z-index 10) */}
+                    {activeProductImage && (
+                      <img
+                        src={activeProductImage}
+                        alt="preview"
+                        className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                        crossOrigin="anonymous"
+                        style={{ zIndex: 10 }}
+                      />
+                    )}
                   </div>
                 </div>
               </div>

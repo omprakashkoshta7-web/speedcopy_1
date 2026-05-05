@@ -60,7 +60,6 @@ const BusinessCardCheckoutPage: React.FC = () => {
       return;
     }
 
-    // Get card design from location state or localStorage
     const design = location.state?.cardDesign || JSON.parse(localStorage.getItem('businessCardDesign') || 'null');
     
     if (!design) {
@@ -70,8 +69,6 @@ const BusinessCardCheckoutPage: React.FC = () => {
     }
     
     setCardDesign(design);
-    
-    // Fetch addresses
     fetchAddresses();
   }, [isAuthenticated, location.state, navigate]);
 
@@ -82,7 +79,6 @@ const BusinessCardCheckoutPage: React.FC = () => {
       const parsedAddresses = Array.isArray(addressesData) ? addressesData : [];
       setAddresses(parsedAddresses);
       
-      // Auto-select first address
       if (parsedAddresses.length > 0) {
         setSelectedAddress(parsedAddresses[0]);
       }
@@ -175,7 +171,6 @@ const BusinessCardCheckoutPage: React.FC = () => {
   const handlePayment = async () => {
     if (!cardDesign) return;
     
-    // Validate address
     if (!selectedAddress) {
       alert('Please select or add a delivery address');
       return;
@@ -185,13 +180,8 @@ const BusinessCardCheckoutPage: React.FC = () => {
 
     try {
       if (paymentMethod === 'razorpay') {
-        console.log('🚀 Starting Razorpay payment flow for business cards');
-
-        // 1) Initiate via wallet service (same as AddFundsPage)
         const initiateRes = await walletService.initiateRazorpay(total, `card_${Date.now()}`);
         const paymentData = initiateRes.data;
-
-        console.log('💳 Payment data received:', paymentData);
 
         const keyId = paymentData?.keyId;
         const razorpayOrderId = paymentData?.razorpayOrderId;
@@ -199,11 +189,9 @@ const BusinessCardCheckoutPage: React.FC = () => {
         const currency = paymentData?.currency || 'INR';
 
         if (!keyId || !amountInPaise) {
-          throw new Error('Payment initialization failed. Missing Razorpay details.');
+          throw new Error('Payment initialization failed.');
         }
 
-        // 2) Open Razorpay checkout
-        console.log('🎯 Opening Razorpay checkout...');
         const checkoutResult = await paymentService.openCheckout({
           keyId,
           amount: amountInPaise,
@@ -215,9 +203,6 @@ const BusinessCardCheckoutPage: React.FC = () => {
           purpose: 'order_payment',
         });
 
-        console.log('✅ Payment completed:', checkoutResult);
-
-        // Create order in backend after successful payment
         const orderPayload = {
           items: [{
             productId: 'business_card_custom',
@@ -257,23 +242,17 @@ const BusinessCardCheckoutPage: React.FC = () => {
           paymentStatus: 'paid',
         };
 
-        console.log('📦 Creating order:', orderPayload);
         const orderResponse = await orderService.createOrder(orderPayload);
-        console.log('✅ Order created:', orderResponse);
-
-        // Save order ID and show success
         setOrderId(orderResponse.data.orderNumber || orderResponse.data._id);
         setSuccess(true);
         setLoading(false);
       } else {
-        // Wallet payment
         alert('Wallet payment coming soon!');
         setLoading(false);
       }
     } catch (error: any) {
       console.error('❌ Payment failed:', error);
       
-      // Don't show error for user cancellation
       if (error.message === 'Payment cancelled by user') {
         setLoading(false);
         return;
@@ -287,22 +266,24 @@ const BusinessCardCheckoutPage: React.FC = () => {
 
   if (!cardDesign) {
     return (
-      <div style={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+      <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: '#f5f5f5' }}>
         <Navbar />
-        <div className="max-w-7xl mx-auto px-6 py-16 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading your design...</p>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto" />
+            <p className="mt-4 text-gray-600">Loading your design...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: '#f5f5f5' }}>
       <Navbar />
 
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white border-b border-gray-200 flex-shrink-0">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <button
             onClick={() => navigate('/card-editor')}
@@ -314,260 +295,114 @@ const BusinessCardCheckoutPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h1 className="font-bold text-gray-900 text-3xl mb-2">Checkout</h1>
-          <p className="text-gray-600">Complete your business card order</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left - Order Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Delivery Address Section */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <h2 className="font-bold text-gray-900 text-lg mb-1">Delivery Address</h2>
-              <p className="text-sm mb-4 text-gray-600">Select where you'd like your cards delivered</p>
-              
-              {addresses.length > 0 ? (
-                <div className="space-y-3 mb-4">
-                  {addresses.map((address, i) => (
-                    <button
-                      key={address._id || i}
-                      onClick={() => setSelectedAddress(address)}
-                      className="w-full text-left p-4 rounded-xl transition"
-                      style={{
-                        border: selectedAddress?._id === address._id ? '2px solid #111111' : '1.5px solid #e5e7eb',
-                        backgroundColor: selectedAddress?._id === address._id ? '#fafafa' : '#ffffff',
-                      }}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="font-bold text-gray-900 mb-1">{address.label || address.fullName}</p>
-                          <p className="text-sm text-gray-600 leading-relaxed">
-                            {address.line1}
-                            {address.line2 && <>, {address.line2}</>}
-                            <br />
-                            {address.city}, {address.state} {address.pincode}
-                          </p>
-                        </div>
-                        <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ml-3"
-                          style={{ 
-                            border: selectedAddress?._id === address._id ? 'none' : '1.5px solid #d1d5db', 
-                            backgroundColor: selectedAddress?._id === address._id ? '#111111' : 'transparent' 
-                          }}>
-                          {selectedAddress?._id === address._id && <div className="w-2 h-2 rounded-full bg-white" />}
-                        </div>
-                      </div>
-                      
-                      {/* Edit and Delete buttons */}
-                      <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid #e5e7eb' }}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditAddress(address);
-                          }}
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition"
-                          style={{ backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Edit
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteAddress(address._id);
-                          }}
-                          disabled={deletingAddressId === address._id}
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition disabled:opacity-50"
-                          style={{ backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }}
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Delete
-                        </button>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 px-4 rounded-xl border-2 border-dashed border-gray-300 mb-4">
-                  <p className="text-gray-500 mb-3">No addresses found</p>
-                  <button 
-                    onClick={() => setShowAddressModal(true)}
-                    className="px-4 py-2 bg-black text-white rounded-full text-sm font-semibold hover:bg-gray-800 transition"
-                  >
-                    Add Address
-                  </button>
-                </div>
-              )}
-
-              <button 
-                onClick={() => setShowAddressModal(true)}
-                className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add New Address
-              </button>
-            </div>
-
-            {/* Card Preview */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <h2 className="font-bold text-gray-900 text-lg mb-4">Your Design</h2>
-              <div className="bg-gray-50 rounded-xl p-8 flex items-center justify-center">
-                <div
-                  className="rounded-xl shadow-lg p-6"
-                  style={{
-                    width: '350px',
-                    height: '210px',
-                    backgroundColor: cardDesign.color,
-                    color: '#ffffff',
-                  }}
-                >
-                  <div className="h-full flex flex-col justify-between">
-                    <div>
-                      <h3 className="font-bold text-2xl mb-1">{cardDesign.text.name}</h3>
-                      <p className="text-sm opacity-80">{cardDesign.text.title}</p>
-                    </div>
-                    <div className="space-y-0.5 text-xs opacity-90">
-                      <p>{cardDesign.text.phone}</p>
-                      <p>{cardDesign.text.email}</p>
-                      <p>{cardDesign.text.website}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quantity Selection */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <h2 className="font-bold text-gray-900 text-lg mb-4">Quantity</h2>
-              <div className="grid grid-cols-4 gap-3">
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-5xl mx-auto px-6 py-6">
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left - Configuration */}
+          <div className="space-y-4">
+            {/* Quantity */}
+            <div className="bg-white rounded-xl p-5 border border-gray-200">
+              <h2 className="font-bold text-gray-900 text-base mb-3">Quantity</h2>
+              <div className="grid grid-cols-4 gap-2 mb-3">
                 {[100, 250, 500, 1000].map((qty) => (
                   <button
                     key={qty}
                     onClick={() => setQuantity(qty)}
-                    className={`p-4 rounded-xl border-2 transition ${
+                    className={`py-2.5 px-3 rounded-lg text-sm font-semibold transition ${
                       quantity === qty
-                        ? 'border-gray-900 bg-gray-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    <p className="font-bold text-gray-900 text-lg">{qty}</p>
-                    <p className="text-xs text-gray-500">cards</p>
+                    {qty}
                   </button>
                 ))}
               </div>
-              <div className="mt-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Custom Quantity</label>
-                <input
-                  type="number"
-                  min="50"
-                  max="10000"
-                  step="50"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(50, parseInt(e.target.value) || 50))}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-gray-900 transition"
-                  placeholder="Enter custom quantity"
-                />
-              </div>
+              <input
+                type="number"
+                min="50"
+                max="10000"
+                step="50"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(50, parseInt(e.target.value) || 50))}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:border-gray-900"
+                placeholder="Custom quantity"
+              />
             </div>
 
-            {/* Paper Type */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-              <h2 className="font-bold text-gray-900 text-lg mb-4">Paper Quality</h2>
-              <div className="space-y-3">
+            {/* Paper Quality */}
+            <div className="bg-white rounded-xl p-5 border border-gray-200">
+              <h2 className="font-bold text-gray-900 text-base mb-3">Paper Quality</h2>
+              <div className="space-y-2">
                 {[
-                  { id: 'standard', name: 'Standard', desc: '300 GSM Art Card', price: pricePerCard.standard },
-                  { id: 'premium', name: 'Premium', desc: '350 GSM Matt Finish', price: pricePerCard.premium },
-                  { id: 'luxury', name: 'Luxury', desc: '400 GSM Velvet Touch', price: pricePerCard.luxury },
+                  { id: 'standard', name: 'Standard', desc: '300 GSM', price: pricePerCard.standard },
+                  { id: 'premium', name: 'Premium', desc: '350 GSM', price: pricePerCard.premium },
+                  { id: 'luxury', name: 'Luxury', desc: '400 GSM', price: pricePerCard.luxury },
                 ].map((paper) => (
                   <button
                     key={paper.id}
                     onClick={() => setPaperType(paper.id as any)}
-                    className={`w-full p-4 rounded-xl border-2 transition text-left ${
+                    className={`w-full p-3 rounded-lg text-left transition ${
                       paperType === paper.id
-                        ? 'border-gray-900 bg-gray-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-bold text-gray-900">{paper.name}</p>
-                        <p className="text-sm text-gray-500">{paper.desc}</p>
+                        <p className="font-semibold text-sm">{paper.name}</p>
+                        <p className={`text-xs ${paperType === paper.id ? 'text-gray-300' : 'text-gray-500'}`}>{paper.desc}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-gray-900">₹{paper.price}</p>
-                        <p className="text-xs text-gray-500">per card</p>
-                      </div>
+                      <p className="font-bold text-sm">₹{paper.price}</p>
                     </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Payment Method */}
-            <div className="bg-white rounded-xl p-4 border border-gray-200">
-              <h2 className="font-bold text-gray-900 text-sm mb-2.5">Payment Method</h2>
-              <div className="space-y-1.5">
-                <button
-                  onClick={() => setPaymentMethod('razorpay')}
-                  className={`w-full p-2.5 rounded-lg border-2 transition text-left ${
-                    paymentMethod === 'razorpay'
-                      ? 'border-gray-900 bg-gray-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <CreditCard size={14} className="text-blue-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-xs">Razorpay</p>
-                      <p className="text-xs text-gray-500">UPI, Cards, Net Banking</p>
-                    </div>
-                    {paymentMethod === 'razorpay' && (
-                      <Check size={16} className="text-green-600 flex-shrink-0" />
-                    )}
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => setPaymentMethod('wallet')}
-                  className={`w-full p-2.5 rounded-lg border-2 transition text-left ${
-                    paymentMethod === 'wallet'
-                      ? 'border-gray-900 bg-gray-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <Wallet size={14} className="text-purple-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-xs">Wallet</p>
-                      <p className="text-xs text-gray-500">Pay from wallet balance</p>
-                    </div>
-                    {paymentMethod === 'wallet' && (
-                      <Check size={16} className="text-green-600 flex-shrink-0" />
-                    )}
-                  </div>
-                </button>
-              </div>
+            {/* Delivery Address */}
+            <div className="bg-white rounded-xl p-5 border border-gray-200">
+              <h2 className="font-bold text-gray-900 text-base mb-3">Delivery Address</h2>
+              {addresses.length > 0 ? (
+                <div className="space-y-2 mb-3">
+                  {addresses.map((address, i) => (
+                    <button
+                      key={address._id || i}
+                      onClick={() => setSelectedAddress(address)}
+                      className={`w-full text-left p-3 rounded-lg transition ${
+                        selectedAddress?._id === address._id
+                          ? 'bg-gray-900 text-white'
+                          : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                      }`}
+                    >
+                      <p className="font-semibold text-sm mb-1">{address.label || address.fullName}</p>
+                      <p className={`text-xs ${selectedAddress?._id === address._id ? 'text-gray-300' : 'text-gray-600'}`}>
+                        {address.line1}, {address.city} {address.pincode}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 px-4 rounded-lg bg-gray-50 mb-3">
+                  <p className="text-gray-500 text-sm mb-2">No addresses found</p>
+                </div>
+              )}
+              <button 
+                onClick={() => setShowAddressModal(true)}
+                className="w-full py-2.5 px-4 bg-gray-100 text-gray-900 rounded-lg text-sm font-semibold hover:bg-gray-200 transition"
+              >
+                + Add New Address
+              </button>
             </div>
           </div>
 
-          {/* Right - Order Summary */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl p-6 border border-gray-200 sticky top-6">
+          {/* Right - Summary */}
+          <div>
+            <div className="bg-white rounded-xl p-5 border border-gray-200 sticky top-6">
               <h2 className="font-bold text-gray-900 text-lg mb-4">Order Summary</h2>
               
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2.5 mb-4 pb-4 border-b border-gray-200">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Quantity</span>
                   <span className="font-semibold text-gray-900">{quantity} cards</span>
@@ -582,7 +417,7 @@ const BusinessCardCheckoutPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-4 mb-4 space-y-2">
+              <div className="space-y-2 mb-4 pb-4 border-b border-gray-200">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-semibold text-gray-900">₹{subtotal.toFixed(2)}</span>
@@ -593,17 +428,57 @@ const BusinessCardCheckoutPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-4 mb-6">
-                <div className="flex justify-between">
-                  <span className="font-bold text-gray-900 text-lg">Total</span>
-                  <span className="font-bold text-gray-900 text-2xl">₹{total.toFixed(2)}</span>
+              <div className="flex justify-between items-center mb-5">
+                <span className="font-bold text-gray-900 text-lg">Total</span>
+                <span className="font-bold text-gray-900 text-2xl">₹{total.toFixed(2)}</span>
+              </div>
+
+              {/* Payment Method */}
+              <div className="mb-4">
+                <h3 className="font-semibold text-gray-900 text-sm mb-2">Payment Method</h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setPaymentMethod('razorpay')}
+                    className={`w-full p-3 rounded-lg text-left transition ${
+                      paymentMethod === 'razorpay'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <CreditCard size={16} />
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">Razorpay</p>
+                        <p className={`text-xs ${paymentMethod === 'razorpay' ? 'text-gray-300' : 'text-gray-500'}`}>UPI, Cards, Net Banking</p>
+                      </div>
+                      {paymentMethod === 'razorpay' && <Check size={16} />}
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setPaymentMethod('wallet')}
+                    className={`w-full p-3 rounded-lg text-left transition ${
+                      paymentMethod === 'wallet'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Wallet size={16} />
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">Wallet</p>
+                        <p className={`text-xs ${paymentMethod === 'wallet' ? 'text-gray-300' : 'text-gray-500'}`}>Pay from wallet</p>
+                      </div>
+                      {paymentMethod === 'wallet' && <Check size={16} />}
+                    </div>
+                  </button>
                 </div>
               </div>
 
               <button
                 onClick={handlePayment}
-                disabled={loading}
-                className="w-full py-4 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                disabled={loading || !selectedAddress}
+                className="w-full py-3.5 bg-gray-900 text-white rounded-lg font-bold text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -618,22 +493,20 @@ const BusinessCardCheckoutPage: React.FC = () => {
                 )}
               </button>
 
-              <p className="text-xs text-gray-500 text-center mt-4">
-                By placing this order, you agree to our terms and conditions
+              <p className="text-xs text-gray-500 text-center mt-3">
+                By placing this order, you agree to our terms
               </p>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
       {/* Success Modal */}
       {success && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="bg-white rounded-3xl p-10 text-center w-full"
-            style={{ maxWidth: '440px', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
-              style={{ backgroundColor: '#16a34a', boxShadow: '0 0 0 12px #dcfce7' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-3xl p-10 text-center w-full" style={{ maxWidth: '440px', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: '#16a34a', boxShadow: '0 0 0 12px #dcfce7' }}>
               <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
@@ -645,14 +518,10 @@ const BusinessCardCheckoutPage: React.FC = () => {
               {quantity} cards • {paperType} paper • ₹{total.toFixed(2)}
             </p>
             <div className="space-y-3">
-              <button onClick={() => navigate('/orders')}
-                className="w-full py-3 text-white font-bold rounded-full hover:bg-gray-700 transition text-sm"
-                style={{ backgroundColor: '#111111' }}>
+              <button onClick={() => navigate('/orders')} className="w-full py-3 text-white font-bold rounded-full hover:bg-gray-700 transition text-sm" style={{ backgroundColor: '#111111' }}>
                 View My Orders
               </button>
-              <button onClick={() => navigate('/')}
-                className="w-full py-3 font-bold rounded-full hover:bg-gray-100 transition text-sm"
-                style={{ border: '1.5px solid #e5e7eb', color: '#374151' }}>
+              <button onClick={() => navigate('/')} className="w-full py-3 font-bold rounded-full hover:bg-gray-100 transition text-sm" style={{ border: '1.5px solid #e5e7eb', color: '#374151' }}>
                 Back to Home
               </button>
             </div>

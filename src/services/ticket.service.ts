@@ -190,11 +190,30 @@ class TicketService {
     const formData = new FormData();
     files.forEach(file => formData.append('attachments', file));
     console.log('📤 [TicketService] Uploading files:', files.map(f => ({ name: f.name, size: f.size, type: f.type })));
-    const response = await apiClient.post(API_CONFIG.ENDPOINTS.TICKETS.UPLOADS, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    console.log('✅ [TicketService] Upload response:', response.data);
-    return response.data;
+    
+    try {
+      // Try primary endpoint: /api/notifications/tickets/uploads
+      // Note: Do NOT set Content-Type manually - browser will set it with boundary
+      const response = await apiClient.post(API_CONFIG.ENDPOINTS.TICKETS.UPLOADS, formData);
+      console.log('✅ [TicketService] Upload response:', response.data);
+      return response.data;
+    } catch (err: any) {
+      console.error('❌ [TicketService] Primary upload endpoint failed:', err?.response?.status);
+      
+      // Fallback: try /api/tickets/uploads (without notifications prefix)
+      if (err?.response?.status === 404) {
+        console.log('🔄 [TicketService] Trying fallback endpoint: /api/tickets/uploads');
+        try {
+          const response = await apiClient.post('/api/tickets/uploads', formData);
+          console.log('✅ [TicketService] Fallback upload response:', response.data);
+          return response.data;
+        } catch (fallbackErr: any) {
+          console.error('❌ [TicketService] Fallback upload also failed:', fallbackErr?.response?.status);
+        }
+      }
+      
+      throw err;
+    }
   }
 
   /** PATCH /api/ticket/:id/status — admin/staff only */
