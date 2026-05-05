@@ -41,7 +41,6 @@ const BusinessCardCheckoutPage: React.FC = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
-  const [deletingAddressId, setDeletingAddressId] = useState<string | null>(null);
 
   // Pricing
   const pricePerCard = {
@@ -137,35 +136,6 @@ const BusinessCardCheckoutPage: React.FC = () => {
     setShowAddressModal(false);
     setEditingAddress(null);
     setSavingAddress(false);
-  };
-
-  const handleDeleteAddress = async (addressId: string) => {
-    if (!window.confirm('Are you sure you want to delete this address?')) return;
-    
-    try {
-      setDeletingAddressId(addressId);
-      await userService.deleteAddress(addressId);
-      const updated = addresses.filter(a => a._id !== addressId);
-      setAddresses(updated);
-      
-      if (selectedAddress?._id === addressId) {
-        setSelectedAddress(updated.length > 0 ? updated[0] : null);
-      }
-    } catch (err) {
-      console.error('Failed to delete address:', err);
-      const updated = addresses.filter(a => a._id !== addressId);
-      setAddresses(updated);
-      if (selectedAddress?._id === addressId) {
-        setSelectedAddress(updated.length > 0 ? updated[0] : null);
-      }
-    } finally {
-      setDeletingAddressId(null);
-    }
-  };
-
-  const handleEditAddress = (address: any) => {
-    setEditingAddress(address);
-    setShowAddressModal(true);
   };
 
   const handlePayment = async () => {
