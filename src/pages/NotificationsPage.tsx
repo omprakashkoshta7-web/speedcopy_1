@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import BackButton from '../components/BackButton';
 import { useAuth } from '../context/AuthContext';
 import notificationService, { type Notification } from '../services/notification.service';
 
@@ -158,7 +157,6 @@ const NotificationsPage: React.FC = () => {
   return (
     <div style={{ backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
       <Navbar />
-      <BackButton label="Back" className="mb-6" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex items-start justify-between mb-6 px-1">
           <div>

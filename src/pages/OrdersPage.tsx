@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import BackButton from '../components/BackButton';
 import orderService, { type Order } from '../services/order.service';
 import { useAuth } from '../context/AuthContext';
 
@@ -147,7 +146,6 @@ const OrdersPage: React.FC = () => {
   return (
     <div style={{ backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
       <Navbar />
-      <BackButton label="Back" className="mb-6" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
-import BackButton from '../components/BackButton';
 import userService from '../services/user.service';
 import { useAuth } from '../context/AuthContext';
 
@@ -189,7 +188,6 @@ const ProfilePage: React.FC = () => {
   return (
     <div style={{ backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
       <Navbar />
-      <BackButton label="Back" className="mb-6" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Page title */}

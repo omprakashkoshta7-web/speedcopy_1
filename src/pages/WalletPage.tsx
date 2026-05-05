@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import BackButton from '../components/BackButton';
 import walletService from '../services/wallet.service';
 import type { LedgerEntry } from '../services/wallet.service';
 import { useAuth } from '../context/AuthContext';
@@ -104,9 +103,6 @@ const WalletPage: React.FC = () => {
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-
-        {/* Back Button */}
-        <BackButton label="Back" className="mb-6" />
 
         {/* Page Title */}
         <div className="mb-6 px-1">

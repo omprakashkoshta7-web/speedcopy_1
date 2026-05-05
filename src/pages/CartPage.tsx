@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import BackButton from '../components/BackButton';
 import { useAuth } from '../context/AuthContext';
 import orderService from '../services/order.service';
 import productService from '../services/product.service';
@@ -198,7 +197,6 @@ const CartPage: React.FC = () => {
   return (
     <div style={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
       <Navbar />
-      <BackButton label="Back" className="mb-6" />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
         {/* Breadcrumb - Compact */}
         <div className="flex items-center gap-1.5 text-xs mb-3" style={{ color: '#9ca3af' }}>

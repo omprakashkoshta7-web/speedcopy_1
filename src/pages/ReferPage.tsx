@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import BackButton from '../components/BackButton';
 import { useAuth } from '../context/AuthContext';
 import financeService from '../services/finance.service';
 
@@ -165,7 +164,6 @@ const ReferPage: React.FC = () => {
   return (
     <div style={{ backgroundColor: '#f3f4f6', minHeight: '100vh' }}>
       <Navbar />
-      <BackButton label="Back" className="mb-6" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
